@@ -45,6 +45,16 @@ static class StatusText
         return FormatCountdown(value);
     }
 
+    public static string FormatDuration(int totalSeconds)
+    {
+        int hours = totalSeconds / 3600;
+        int minutes = totalSeconds % 3600 / SecondsPerMinute;
+        int seconds = totalSeconds % SecondsPerMinute;
+        return hours > 0
+            ? $"{hours}:{minutes:D2}:{seconds:D2}"
+            : $"{minutes:D2}:{seconds:D2}";
+    }
+
     static string FormatCountdown(int totalSeconds)
     {
         int minutes = totalSeconds / SecondsPerMinute;

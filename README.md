@@ -31,7 +31,7 @@ dotnet run --project Pomu.csproj
 2. Set how many work sessions you want, plus the work and rest length in minutes.
 3. Hit Start Day.
 4. Work until the timer hits zero. A sound plays, then click Continue to roll into the break.
-5. Repeat until you are done.
+5. Repeat until you are done. The finish screen shows a small recap: total time including overtime, how much of it was overtime, and how long you sat paused.
 
 The day always ends on a work block, since finishing on a break never made sense to me. The menu bar shows the time left while you work or rest. If you run over it just keeps counting up in red as negative time so you can see how far past you went. It does not mess with your other blocks, they always run their full length.
 

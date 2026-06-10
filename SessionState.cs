@@ -30,6 +30,11 @@ class SessionState
     public SessionConfig? Config;
     public BlockState? Current;
     public bool IsPaused;
+    public int TotalActiveSeconds;
+    public int TotalPauseSeconds;
+    public int TotalOvertimeSeconds;
+    public DateTime? StartedAt;
+    public DateTime? FinishedAt;
 
     bool _justCompleted;
 
@@ -41,6 +46,11 @@ class SessionState
         Config = config;
         IsPaused = false;
         _justCompleted = false;
+        TotalActiveSeconds = 0;
+        TotalPauseSeconds = 0;
+        TotalOvertimeSeconds = 0;
+        StartedAt = DateTime.Now;
+        FinishedAt = null;
         Current = new BlockState
         {
             Phase = Phase.Work,
@@ -55,11 +65,18 @@ class SessionState
     public void Tick()
     {
         _justCompleted = false;
-        if (IsPaused || Current == null) return;
+        if (Current == null) return;
         if (Phase != Phase.Work && Phase != Phase.Rest) return;
+
+        if (IsPaused)
+        {
+            TotalPauseSeconds++;
+            return;
+        }
 
         bool wasComplete = Current.IsComplete;
         Current.ElapsedSeconds++;
+        TotalActiveSeconds++;
         if (!wasComplete && Current.IsComplete)
             _justCompleted = true;
     }
@@ -71,11 +88,14 @@ class SessionState
         if (Config == null || Current == null) return;
         if (!Current.IsComplete) return;
 
+        TotalOvertimeSeconds += Current.OvertimeSeconds;
+
         if (Current.Phase == Phase.Work)
         {
             bool isLastWork = Current.WorkBlockIndex >= Config.TotalWorkBlocks;
             if (isLastWork)
             {
+                FinishedAt = DateTime.Now;
                 Current = new BlockState { Phase = Phase.Done };
             }
             else
@@ -113,5 +133,10 @@ class SessionState
         Current = null;
         IsPaused = false;
         _justCompleted = false;
+        TotalActiveSeconds = 0;
+        TotalPauseSeconds = 0;
+        TotalOvertimeSeconds = 0;
+        StartedAt = null;
+        FinishedAt = null;
     }
 }

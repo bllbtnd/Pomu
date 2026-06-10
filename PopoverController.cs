@@ -176,14 +176,49 @@ class PopoverController : NSViewController
 
     void BuildDone()
     {
+        float top = PopoverHeight - Margin;
+
         var label = MakeTitle("Session complete");
         label.Alignment = NSTextAlignment.Center;
-        label.Frame = new CGRect(Margin, PopoverHeight / 2, PopoverWidth - 2 * Margin, RowHeight);
+        label.Frame = new CGRect(Margin, top - RowHeight, PopoverWidth - 2 * Margin, RowHeight);
         View.AddSubview(label);
+
+        bool crossedMidnight = _state.StartedAt?.Date != _state.FinishedAt?.Date;
+
+        float y = top - RowHeight - RowSpacing - RowHeight;
+        AddStatRow("From", FormatStamp(_state.StartedAt, crossedMidnight), y);
+        y -= RowHeight;
+        AddStatRow("To", FormatStamp(_state.FinishedAt, crossedMidnight), y);
+        y -= RowHeight;
+        AddStatRow("Total time", StatusText.FormatDuration(_state.TotalActiveSeconds + _state.TotalPauseSeconds), y);
+        y -= RowHeight;
+        AddStatRow("Overtime", StatusText.FormatDuration(_state.TotalOvertimeSeconds), y);
+        y -= RowHeight;
+        AddStatRow("Paused", StatusText.FormatDuration(_state.TotalPauseSeconds), y);
 
         var resetButton = MakeButton("Reset Day", () => OnResetDay?.Invoke());
         resetButton.Frame = new CGRect(Margin, Margin, PopoverWidth - 2 * Margin, 30);
         View.AddSubview(resetButton);
+    }
+
+    static string FormatStamp(DateTime? stamp, bool withDate)
+    {
+        if (stamp == null) return "-";
+        return withDate ? stamp.Value.ToString("g") : stamp.Value.ToString("t");
+    }
+
+    void AddStatRow(string caption, string value, float y)
+    {
+        var label = MakeLabel(caption);
+        label.TextColor = NSColor.SecondaryLabel;
+        label.Frame = new CGRect(Margin, y, 110, RowHeight);
+        View.AddSubview(label);
+
+        var valueLabel = MakeLabel(value);
+        valueLabel.Alignment = NSTextAlignment.Right;
+        valueLabel.Font = NSFont.MonospacedDigitSystemFontOfSize(13, NSFontWeight.Medium)!;
+        valueLabel.Frame = new CGRect(PopoverWidth - Margin - 130, y, 130, RowHeight);
+        View.AddSubview(valueLabel);
     }
 
     void StartDayClicked()
