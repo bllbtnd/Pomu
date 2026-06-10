@@ -7,6 +7,7 @@ class SessionConfig
     public int WorkSeconds;
     public int RestSeconds;
     public int TotalWorkBlocks;
+    public string? FocusName;
 }
 
 class BlockState

@@ -7,7 +7,8 @@ namespace Pomu;
 class PopoverController : NSViewController
 {
     const float PopoverWidth = 280f;
-    const float PopoverHeight = 220f;
+    const float PopoverHeight = 254f;
+    const string NoFocusTitle = "None";
     const float Margin = 16f;
     const float RowHeight = 24f;
     const float RowSpacing = 10f;
@@ -26,6 +27,7 @@ class PopoverController : NSViewController
     NSTextField? _sessionsValue;
     NSTextField? _workValue;
     NSTextField? _restValue;
+    NSPopUpButton? _focusPicker;
 
     public PopoverController(SessionState state)
     {
@@ -91,9 +93,30 @@ class PopoverController : NSViewController
         AddFieldRow("Rest min", _restValue, _restStepper, y);
         _restStepper.Activated += (s, e) => _restValue!.StringValue = _restStepper.IntValue.ToString();
 
+        y -= RowHeight + RowSpacing;
+        AddFocusRow(y);
+
         var startButton = MakeButton("Start Day", StartDayClicked);
         startButton.Frame = new CGRect(Margin, Margin, PopoverWidth - 2 * Margin, 30);
         View.AddSubview(startButton);
+    }
+
+    void AddFocusRow(float y)
+    {
+        var label = MakeLabel("Focus");
+        label.Frame = new CGRect(Margin, y, 90, RowHeight);
+        View.AddSubview(label);
+
+        _focusPicker = new NSPopUpButton(new CGRect(Margin + 96, y - 2, PopoverWidth - 2 * Margin - 96, RowHeight + 4), false);
+        _focusPicker.AddItem(NoFocusTitle);
+        foreach (var name in FocusManager.ListFocusNames())
+            _focusPicker.AddItem(name);
+
+        string saved = SettingsStore.LoadFocusName();
+        if (saved.Length > 0 && _focusPicker.ItemWithTitle(saved) != null)
+            _focusPicker.SelectItem(saved);
+
+        View.AddSubview(_focusPicker);
     }
 
     void AddFieldRow(string caption, NSTextField valueLabel, NSStepper stepper, float y)
@@ -168,13 +191,16 @@ class PopoverController : NSViewController
         int sessions = _sessionsStepper!.IntValue;
         int workMin = _workStepper!.IntValue;
         int restMin = _restStepper!.IntValue;
-        SettingsStore.Save(workMin, restMin, sessions);
+        string focusTitle = _focusPicker?.SelectedItem?.Title ?? NoFocusTitle;
+        string? focusName = focusTitle == NoFocusTitle ? null : focusTitle;
+        SettingsStore.Save(workMin, restMin, sessions, focusName ?? string.Empty);
 
         var config = new SessionConfig
         {
             WorkSeconds = workMin * SecondsPerMinute,
             RestSeconds = restMin * SecondsPerMinute,
-            TotalWorkBlocks = sessions
+            TotalWorkBlocks = sessions,
+            FocusName = focusName
         };
         OnStartDay?.Invoke(config);
     }

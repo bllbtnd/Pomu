@@ -113,7 +113,19 @@ class AppDelegate : NSApplicationDelegate
     {
         _state.StartDay(config);
         _timer?.Start();
+        ApplyFocusForPhase();
         RefreshUi();
+    }
+
+    void ApplyFocusForPhase()
+    {
+        string? focus = _state.Config?.FocusName;
+        if (focus == null) return;
+
+        if (_state.Phase == Phase.Work)
+            FocusManager.EnableFocus(focus);
+        else
+            FocusManager.DisableFocus(focus);
     }
 
     void HandleTogglePause()
@@ -125,6 +137,7 @@ class AppDelegate : NSApplicationDelegate
     void HandleContinue()
     {
         _state.Advance();
+        ApplyFocusForPhase();
         if (_state.Phase == Phase.Done)
             _timer?.Stop();
         RefreshUi();
@@ -133,6 +146,9 @@ class AppDelegate : NSApplicationDelegate
     void HandleResetDay()
     {
         if (!ConfirmReset()) return;
+        string? focus = _state.Config?.FocusName;
+        if (focus != null)
+            FocusManager.DisableFocus(focus);
         _state.Reset();
         _timer?.Stop();
         RefreshUi();

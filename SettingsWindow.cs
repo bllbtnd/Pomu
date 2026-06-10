@@ -7,6 +7,7 @@ static class SettingsStore
     const string WorkMinKey = "pomu_work_min";
     const string RestMinKey = "pomu_rest_min";
     const string SessionsKey = "pomu_sessions";
+    const string FocusKey = "pomu_focus";
 
     public const int DefaultWorkMin = 25;
     public const int DefaultRestMin = 5;
@@ -23,12 +24,16 @@ static class SettingsStore
     public static int LoadRestMin() => Read(RestMinKey, DefaultRestMin, MinRestMin, MaxRestMin);
     public static int LoadSessions() => Read(SessionsKey, DefaultSessions, MinSessions, MaxSessions);
 
-    public static void Save(int workMin, int restMin, int sessions)
+    public static string LoadFocusName() =>
+        NSUserDefaults.StandardUserDefaults.StringForKey(FocusKey) ?? string.Empty;
+
+    public static void Save(int workMin, int restMin, int sessions, string focusName)
     {
         var defaults = NSUserDefaults.StandardUserDefaults;
         defaults.SetInt(workMin, WorkMinKey);
         defaults.SetInt(restMin, RestMinKey);
         defaults.SetInt(sessions, SessionsKey);
+        defaults.SetString(focusName, FocusKey);
         defaults.Synchronize();
     }
 
