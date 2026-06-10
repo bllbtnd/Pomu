@@ -30,7 +30,10 @@ class AppDelegate : NSApplicationDelegate
     {
         _statusItem = NSStatusBar.SystemStatusBar.CreateStatusItem(NSStatusItemLength.Variable);
         if (_statusItem.Button != null)
-            _statusItem.Button.Activated += (s, e) => TogglePopover();
+        {
+            _statusItem.Button.SendActionOn((NSEventType)(NSEventMask.LeftMouseUp | NSEventMask.RightMouseUp));
+            _statusItem.Button.Activated += (s, e) => HandleButtonClick();
+        }
     }
 
     void BuildPopover()
@@ -46,6 +49,34 @@ class AppDelegate : NSApplicationDelegate
             Behavior = NSPopoverBehavior.Transient,
             ContentViewController = _popoverController
         };
+    }
+
+    void HandleButtonClick()
+    {
+        var current = NSApplication.SharedApplication.CurrentEvent;
+        bool isRightClick = current != null &&
+            (current.Type == NSEventType.RightMouseUp ||
+             (current.ModifierFlags & NSEventModifierMask.ControlKeyMask) != 0);
+
+        if (isRightClick)
+            ShowContextMenu();
+        else
+            TogglePopover();
+    }
+
+    void ShowContextMenu()
+    {
+        var button = _statusItem?.Button;
+        if (button == null) return;
+
+        var menu = new NSMenu();
+        var quitItem = new NSMenuItem("Quit Pomu", (s, e) => NSApplication.SharedApplication.Terminate(this));
+        quitItem.KeyEquivalent = "q";
+        menu.AddItem(quitItem);
+
+        var current = NSApplication.SharedApplication.CurrentEvent;
+        if (current != null)
+            NSMenu.PopUpContextMenu(menu, current, button);
     }
 
     void TogglePopover()
