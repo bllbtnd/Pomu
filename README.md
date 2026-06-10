@@ -15,7 +15,7 @@ dotnet workload install macos
 Then build the app bundle:
 
 ```
-./make_app.sh
+./scripts/make_app.sh
 open Pomu.app
 ```
 

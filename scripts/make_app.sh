@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CONFIG="Release"
 TFM="net10.0-macos"
 ICON_NAME="Pomu"
@@ -9,7 +10,7 @@ ICON_NAME="Pomu"
 cd "$PROJECT_DIR"
 
 echo "==> Generating app icon"
-ICONSET="$(python3 generate_icon.py "$PROJECT_DIR")"
+ICONSET="$(python3 "$SCRIPT_DIR/generate_icon.py" "$PROJECT_DIR")"
 iconutil -c icns "$ICONSET" -o "$PROJECT_DIR/$ICON_NAME.icns"
 rm -rf "$ICONSET"
 
