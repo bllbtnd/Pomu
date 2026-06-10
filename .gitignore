@@ -1,0 +1,10 @@
+bin/
+obj/
+*.user
+*.suo
+.DS_Store
+.idea
+
+Pomu.app/
+Pomu.icns
+Pomu.iconset/
