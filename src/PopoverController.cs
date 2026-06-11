@@ -7,7 +7,7 @@ namespace Pomu;
 class PopoverController : NSViewController
 {
     const float PopoverWidth = 280f;
-    const float PopoverHeight = 254f;
+    const float PopoverHeight = 320f;
     const string NoFocusTitle = "None";
     const float Margin = 16f;
     const float RowHeight = 24f;
@@ -19,6 +19,7 @@ class PopoverController : NSViewController
     public event Action<SessionConfig>? OnStartDay;
     public event Action? OnTogglePause;
     public event Action? OnResetDay;
+    public event Action? OnEndDay;
     public event Action? OnContinue;
 
     NSStepper? _sessionsStepper;
@@ -27,6 +28,7 @@ class PopoverController : NSViewController
     NSTextField? _sessionsValue;
     NSTextField? _workValue;
     NSTextField? _restValue;
+    NSTextField? _planLabel;
     NSPopUpButton? _focusPicker;
 
     public PopoverController(SessionState state)
@@ -71,34 +73,88 @@ class PopoverController : NSViewController
         float top = PopoverHeight - Margin;
 
         var title = MakeTitle("Pomu");
-        title.Frame = new CGRect(Margin, top - RowHeight, PopoverWidth - 2 * Margin, RowHeight);
+        title.Font = NSFont.BoldSystemFontOfSize(26)!;
+        title.Frame = new CGRect(Margin, top - 32, PopoverWidth - 2 * Margin, 32);
         View.AddSubview(title);
 
-        float y = top - RowHeight - RowSpacing - RowHeight;
+        var credit = MakeLabel("by Botond Balla \u00b7 ballabotond.com");
+        credit.Font = NSFont.SystemFontOfSize(10)!;
+        credit.TextColor = NSColor.TertiaryLabel;
+        credit.Frame = new CGRect(Margin, top - 32 - 14, PopoverWidth - 2 * Margin, 13);
+        View.AddSubview(credit);
+
+        float planHeight = 16f;
+        float areaTop = top - 32 - 14 - 6;
+        float areaBottom = Margin + 30 + 6 + planHeight + 4;
+        float pitch = (areaTop - areaBottom) / 4;
+        float slotOffset = (pitch - RowHeight) / 2;
+        float y = areaTop - pitch + slotOffset;
 
         _sessionsStepper = MakeStepper(SettingsStore.MinSessions, SettingsStore.MaxSessions, SettingsStore.LoadSessions());
-        _sessionsValue = MakeValueLabel(_sessionsStepper.IntValue.ToString());
+        _sessionsValue = MakeValueField(_sessionsStepper.IntValue);
         AddFieldRow("Sessions", _sessionsValue, _sessionsStepper, y);
-        _sessionsStepper.Activated += (s, e) => _sessionsValue!.StringValue = _sessionsStepper.IntValue.ToString();
+        WireRow(_sessionsValue, _sessionsStepper);
 
-        y -= RowHeight + RowSpacing;
+        y -= pitch;
         _workStepper = MakeStepper(SettingsStore.MinWorkMin, SettingsStore.MaxWorkMin, SettingsStore.LoadWorkMin());
-        _workValue = MakeValueLabel(_workStepper.IntValue.ToString());
+        _workValue = MakeValueField(_workStepper.IntValue);
         AddFieldRow("Work min", _workValue, _workStepper, y);
-        _workStepper.Activated += (s, e) => _workValue!.StringValue = _workStepper.IntValue.ToString();
+        WireRow(_workValue, _workStepper);
 
-        y -= RowHeight + RowSpacing;
+        y -= pitch;
         _restStepper = MakeStepper(SettingsStore.MinRestMin, SettingsStore.MaxRestMin, SettingsStore.LoadRestMin());
-        _restValue = MakeValueLabel(_restStepper.IntValue.ToString());
+        _restValue = MakeValueField(_restStepper.IntValue);
         AddFieldRow("Rest min", _restValue, _restStepper, y);
-        _restStepper.Activated += (s, e) => _restValue!.StringValue = _restStepper.IntValue.ToString();
+        WireRow(_restValue, _restStepper);
 
-        y -= RowHeight + RowSpacing;
+        y -= pitch;
         AddFocusRow(y);
 
+        _planLabel = MakeLabel(string.Empty);
+        _planLabel.Alignment = NSTextAlignment.Center;
+        _planLabel.Font = NSFont.SystemFontOfSize(11)!;
+        _planLabel.TextColor = NSColor.SecondaryLabel;
+        _planLabel.Frame = new CGRect(Margin, Margin + 30 + 6, PopoverWidth - 2 * Margin, planHeight);
+        View.AddSubview(_planLabel);
+        UpdatePlanLabel();
+
         var startButton = MakeButton("Start Day", StartDayClicked);
+        startButton.KeyEquivalent = "\r";
         startButton.Frame = new CGRect(Margin, Margin, PopoverWidth - 2 * Margin, 30);
         View.AddSubview(startButton);
+    }
+
+    void WireRow(NSTextField field, NSStepper stepper)
+    {
+        stepper.Activated += (s, e) =>
+        {
+            field.StringValue = stepper.IntValue.ToString();
+            UpdatePlanLabel();
+        };
+        field.Changed += (s, e) =>
+        {
+            if (int.TryParse(field.StringValue, out int typed))
+            {
+                int clamped = Math.Clamp(typed, (int)stepper.MinValue, (int)stepper.MaxValue);
+                stepper.IntValue = clamped;
+                if (clamped != typed)
+                    field.StringValue = clamped.ToString();
+                UpdatePlanLabel();
+            }
+        };
+    }
+
+    void UpdatePlanLabel()
+    {
+        if (_planLabel == null || _sessionsStepper == null || _workStepper == null || _restStepper == null) return;
+
+        int sessions = _sessionsStepper.IntValue;
+        int totalMinutes = sessions * _workStepper.IntValue + (sessions - 1) * _restStepper.IntValue;
+        string length = totalMinutes >= 60
+            ? $"{totalMinutes / 60}h {totalMinutes % 60:D2}m"
+            : $"{totalMinutes}m";
+        string ends = DateTime.Now.AddMinutes(totalMinutes).ToString("t");
+        _planLabel.StringValue = $"{length} total \u00b7 ends around {ends}";
     }
 
     void AddFocusRow(float y)
@@ -125,10 +181,10 @@ class PopoverController : NSViewController
         label.Frame = new CGRect(Margin, y, 90, RowHeight);
         View.AddSubview(label);
 
-        valueLabel.Frame = new CGRect(Margin + 96, y, 40, RowHeight);
+        valueLabel.Frame = new CGRect(PopoverWidth - Margin - 88, y, 56, RowHeight - 2);
         View.AddSubview(valueLabel);
 
-        stepper.Frame = new CGRect(PopoverWidth - Margin - 20, y, 20, RowHeight);
+        stepper.Frame = new CGRect(PopoverWidth - Margin - 24, y, 24, RowHeight);
         View.AddSubview(stepper);
     }
 
@@ -143,10 +199,10 @@ class PopoverController : NSViewController
         View.AddSubview(phaseLabel);
 
         var timeLabel = MakeTimeLabel(block);
-        timeLabel.Frame = new CGRect(Margin, top - RowHeight - 50, PopoverWidth - 2 * Margin, 44);
+        timeLabel.Frame = new CGRect(Margin, PopoverHeight / 2 + 10, PopoverWidth - 2 * Margin, 72);
         View.AddSubview(timeLabel);
 
-        var progress = new NSProgressIndicator(new CGRect(Margin, top - RowHeight - 80, PopoverWidth - 2 * Margin, 16))
+        var progress = new NSProgressIndicator(new CGRect(Margin, PopoverHeight / 2 - 24, PopoverWidth - 2 * Margin, 16))
         {
             Style = NSProgressIndicatorStyle.Bar,
             Indeterminate = false,
@@ -169,9 +225,9 @@ class PopoverController : NSViewController
         pauseButton.Frame = new CGRect(Margin, buttonY, (PopoverWidth - 2 * Margin) / 2 - 4, 30);
         View.AddSubview(pauseButton);
 
-        var resetButton = MakeButton("Reset Day", () => OnResetDay?.Invoke());
-        resetButton.Frame = new CGRect(PopoverWidth / 2 + 4, buttonY, (PopoverWidth - 2 * Margin) / 2 - 4, 30);
-        View.AddSubview(resetButton);
+        var endButton = MakeButton("End Day", () => OnEndDay?.Invoke());
+        endButton.Frame = new CGRect(PopoverWidth / 2 + 4, buttonY, (PopoverWidth - 2 * Margin) / 2 - 4, 30);
+        View.AddSubview(endButton);
     }
 
     void BuildDone()
@@ -183,14 +239,31 @@ class PopoverController : NSViewController
         label.Frame = new CGRect(Margin, top - RowHeight, PopoverWidth - 2 * Margin, RowHeight);
         View.AddSubview(label);
 
-        bool crossedMidnight = _state.StartedAt?.Date != _state.FinishedAt?.Date;
+        bool crossedMidnight = _state.StartedAt?.ToLocalTime().Date != _state.FinishedAt?.ToLocalTime().Date;
 
         float y = top - RowHeight - RowSpacing - RowHeight;
         AddStatRow("From", FormatStamp(_state.StartedAt, crossedMidnight), y);
         y -= RowHeight;
         AddStatRow("To", FormatStamp(_state.FinishedAt, crossedMidnight), y);
         y -= RowHeight;
-        AddStatRow("Total time", StatusText.FormatDuration(_state.TotalActiveSeconds + _state.TotalPauseSeconds), y);
+        string sessions = _state.Config != null
+            ? $"{_state.CompletedWorkBlocks} of {_state.Config.TotalWorkBlocks}"
+            : "-";
+        AddStatRow("Sessions", sessions, y);
+        y -= RowHeight;
+        int totalSeconds = _state.StartedAt != null && _state.FinishedAt != null
+            ? (int)(_state.FinishedAt.Value - _state.StartedAt.Value).TotalSeconds
+            : _state.TotalActiveSeconds + _state.TotalPauseSeconds;
+        AddStatRow("Total time", StatusText.FormatDuration(totalSeconds), y);
+        y -= RowHeight;
+        AddStatRow("Work", StatusText.FormatDuration(_state.TotalWorkSeconds), y);
+        y -= RowHeight;
+        AddStatRow("Rest", StatusText.FormatDuration(_state.TotalRestSeconds), y);
+        y -= RowHeight;
+        string avgWork = _state.CompletedWorkBlocks > 0
+            ? StatusText.FormatDuration(_state.TotalWorkSeconds / _state.CompletedWorkBlocks)
+            : "-";
+        AddStatRow("Avg work", avgWork, y);
         y -= RowHeight;
         AddStatRow("Overtime", StatusText.FormatDuration(_state.TotalOvertimeSeconds), y);
         y -= RowHeight;
@@ -204,7 +277,8 @@ class PopoverController : NSViewController
     static string FormatStamp(DateTime? stamp, bool withDate)
     {
         if (stamp == null) return "-";
-        return withDate ? stamp.Value.ToString("g") : stamp.Value.ToString("t");
+        var local = stamp.Value.ToLocalTime();
+        return withDate ? local.ToString("g") : local.ToString("t");
     }
 
     void AddStatRow(string caption, string value, float y)
@@ -251,7 +325,7 @@ class PopoverController : NSViewController
     {
         var field = MakeLabel(StatusText.FormatPopoverTime(block));
         field.Alignment = NSTextAlignment.Center;
-        field.Font = NSFont.MonospacedDigitSystemFontOfSize(34, NSFontWeight.Medium)!;
+        field.Font = NSFont.MonospacedDigitSystemFontOfSize(52, NSFontWeight.Medium)!;
         if (block.IsOvertime)
             field.TextColor = NSColor.Red;
         return field;
@@ -277,11 +351,17 @@ class PopoverController : NSViewController
         };
     }
 
-    static NSTextField MakeValueLabel(string text)
+    static NSTextField MakeValueField(int value)
     {
-        var field = MakeLabel(text);
-        field.Alignment = NSTextAlignment.Right;
-        return field;
+        return new NSTextField
+        {
+            StringValue = value.ToString(),
+            Editable = true,
+            Bordered = true,
+            BezelStyle = NSTextFieldBezelStyle.Rounded,
+            Alignment = NSTextAlignment.Center,
+            Font = NSFont.MonospacedDigitSystemFontOfSize(13, NSFontWeight.Regular)!
+        };
     }
 
     static NSStepper MakeStepper(int min, int max, int value)

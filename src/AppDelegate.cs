@@ -42,6 +42,7 @@ class AppDelegate : NSApplicationDelegate
         _popoverController.OnStartDay += HandleStartDay;
         _popoverController.OnTogglePause += HandleTogglePause;
         _popoverController.OnResetDay += HandleResetDay;
+        _popoverController.OnEndDay += HandleEndDay;
         _popoverController.OnContinue += HandleContinue;
 
         _popover = new NSPopover
@@ -89,16 +90,21 @@ class AppDelegate : NSApplicationDelegate
         }
         else
         {
-            _popoverController?.Render();
+            RenderPopover();
             _popover.Show(CGRect.Empty, _statusItem.Button, NSRectEdge.MinYEdge);
         }
+    }
+
+    void RenderPopover()
+    {
+        _popoverController?.Render();
     }
 
     void HandleTick()
     {
         UpdateStatusTitle();
         if (_popover?.Shown == true)
-            _popoverController?.Render();
+            RenderPopover();
     }
 
     void HandleBlockCompleted(Phase completedPhase)
@@ -130,7 +136,7 @@ class AppDelegate : NSApplicationDelegate
 
     void HandleTogglePause()
     {
-        _state.IsPaused = !_state.IsPaused;
+        _state.TogglePause();
         RefreshUi();
     }
 
@@ -143,9 +149,18 @@ class AppDelegate : NSApplicationDelegate
         RefreshUi();
     }
 
+    void HandleEndDay()
+    {
+        if (!Confirm("End the day early? Your progress so far will be summarized.", "End Day")) return;
+        _state.EndDay();
+        ApplyFocusForPhase();
+        _timer?.Stop();
+        RefreshUi();
+    }
+
     void HandleResetDay()
     {
-        if (!ConfirmReset()) return;
+        if (!Confirm("Reset the current session? This cannot be undone.", "Reset")) return;
         string? focus = _state.Config?.FocusName;
         if (focus != null)
             FocusManager.DisableFocus(focus);
@@ -154,14 +169,14 @@ class AppDelegate : NSApplicationDelegate
         RefreshUi();
     }
 
-    bool ConfirmReset()
+    bool Confirm(string message, string confirmTitle)
     {
         var alert = new NSAlert
         {
-            MessageText = "Reset the current session? This cannot be undone.",
+            MessageText = message,
             AlertStyle = NSAlertStyle.Warning
         };
-        alert.AddButton("Reset");
+        alert.AddButton(confirmTitle);
         alert.AddButton("Cancel");
         return alert.RunModal() == (long)NSAlertButtonReturn.First;
     }
@@ -169,7 +184,7 @@ class AppDelegate : NSApplicationDelegate
     void RefreshUi()
     {
         UpdateStatusTitle();
-        _popoverController?.Render();
+        RenderPopover();
     }
 
     void UpdateStatusTitle()
