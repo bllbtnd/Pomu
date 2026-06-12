@@ -29,6 +29,13 @@ static class FocusManager
         return names;
     }
 
+    const string WorkDoneShortcut = "Pomu Work Done";
+    const string RestDoneShortcut = "Pomu Rest Done";
+
+    public static void NotifyWorkDone() => RunShortcutNamed(WorkDoneShortcut);
+
+    public static void NotifyRestDone() => RunShortcutNamed(RestDoneShortcut);
+
     public static void EnableFocus(string focusName) =>
         RunShortcutNamed(ShortcutPrefix + focusName + OnSuffix);
 

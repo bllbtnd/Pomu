@@ -50,4 +50,11 @@ The shortcuts do not even have to set a Focus. The On one runs at the start of e
 
 The first time Pomu runs a shortcut macOS may ask for permission, just allow it once.
 
+## Phone notifications (optional)
+
+Same trick, different hook. If a shortcut named `Pomu Work Done` exists, it runs when a work block has been sitting finished for 30 seconds without you clicking Continue, and `Pomu Rest Done` does the same for rest blocks. The idea is that if you are at the Mac you hear the sound and click Continue, and your phone only buzzes when you actually walked away. If they do not exist, nothing happens. What you put inside is up to you, but two recipes that get a buzz on your phone:
+
+1. Send Message action with a message to yourself. It arrives on your iPhone as an iMessage, no extra apps needed, though it does clutter your chat with yourself.
+2. Get Contents of URL action that POSTs to ntfy. Install the free ntfy app on your phone, subscribe to a topic with some unguessable name like `pomu-yourname-x7k2`, then have the shortcut POST your message to `https://ntfy.sh/pomu-yourname-x7k2`. Proper push notification, works even on Android.
+
 That is the whole thing. Personal use, no warranty, have fun.

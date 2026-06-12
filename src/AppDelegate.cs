@@ -7,7 +7,10 @@ namespace Pomu;
 [Register("AppDelegate")]
 class AppDelegate : NSApplicationDelegate
 {
+    const int PhoneNotifyDelaySeconds = 30;
+
     readonly SessionState _state = new();
+    BlockState? _phoneNotifiedBlock;
     TimerEngine? _timer;
     NSStatusItem? _statusItem;
     NSPopover? _popover;
@@ -102,9 +105,24 @@ class AppDelegate : NSApplicationDelegate
 
     void HandleTick()
     {
+        NotifyPhoneIfIgnored();
         UpdateStatusTitle();
         if (_popover?.Shown == true)
             RenderPopover();
+    }
+
+    void NotifyPhoneIfIgnored()
+    {
+        var block = _state.Current;
+        if (block == null || !block.IsComplete) return;
+        if (block.OvertimeSeconds < PhoneNotifyDelaySeconds) return;
+        if (_phoneNotifiedBlock == block) return;
+
+        _phoneNotifiedBlock = block;
+        if (block.Phase == Phase.Work)
+            FocusManager.NotifyWorkDone();
+        else if (block.Phase == Phase.Rest)
+            FocusManager.NotifyRestDone();
     }
 
     void HandleBlockCompleted(Phase completedPhase)
