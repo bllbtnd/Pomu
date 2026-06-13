@@ -131,6 +131,20 @@ class AppDelegate : NSApplicationDelegate
             SoundPlayer.PlayWorkComplete();
         else if (completedPhase == Phase.Rest)
             SoundPlayer.PlayRestComplete();
+
+        ShowPopover();
+    }
+
+    void ShowPopover()
+    {
+        if (_popover == null || _statusItem?.Button == null) return;
+
+        RenderPopover();
+        if (!_popover.Shown)
+        {
+            NSApplication.SharedApplication.ActivateIgnoringOtherApps(true);
+            _popover.Show(CGRect.Empty, _statusItem.Button, NSRectEdge.MinYEdge);
+        }
     }
 
     void HandleStartDay(SessionConfig config)
@@ -174,6 +188,7 @@ class AppDelegate : NSApplicationDelegate
         ApplyFocusForPhase();
         _timer?.Stop();
         RefreshUi();
+        ShowPopover();
     }
 
     void HandleResetDay()
@@ -185,6 +200,7 @@ class AppDelegate : NSApplicationDelegate
         _state.Reset();
         _timer?.Stop();
         RefreshUi();
+        ShowPopover();
     }
 
     bool Confirm(string message, string confirmTitle)
